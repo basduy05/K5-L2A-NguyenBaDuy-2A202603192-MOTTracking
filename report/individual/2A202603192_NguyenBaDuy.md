@@ -7,10 +7,10 @@
 - Họ tên: Nguyễn Bá Duy
 - MSSV: 2A202603192
 - Mã đề (A/B/C): A
-- Email: basduy05@gmail.com
+- Email: basduygame@gmail.com
 - Link repository: https://github.com/basduy05/K5-L2A-NguyenBaDuy-2A202603192-MOTTracking
 - Giờ bắt đầu: 17:15
-- Giờ kết thúc: 19:10
+- Giờ kết thúc: 19:15
 
 ## 1. Xem trước đoạn video (CP0)
 
@@ -152,6 +152,24 @@ Số frame in theo CVAT (bắt đầu từ 0). Trong gt.txt, frame_id = frame CV
 
    Nếu để xảy ra lỗi `id_switch` tại frame 45 (ví dụ gán nhầm ID của P1 sang P2 hoặc sinh track ID mới), hệ thống xe tự hành sẽ tính toán đạo hàm vị trí của hai bounding box này trong 1 frame ($1/30$ giây), dẫn đến một vector vận tốc tức thời nhảy vọt phi thực tế ($\approx 150 - 200 \text{ km/h}$). Bộ lọc Kalman Filter hoặc mạng dự đoán quỹ đạo (Trajectory Predictor) của xe sẽ phát tín hiệu phanh khẩn cấp giả (phantom braking) hoặc đánh lái né tránh sai hướng cực kỳ nguy hiểm.
    Lỗi `id_switch` ảnh hưởng nặng nề đến **IDF1** nhiều hơn so với **MOTA**. Bởi vì MOTA chỉ trừ điểm cục bộ tại frame xảy ra chuyển đổi ID (tính là 1 lỗi IDSW trong tổng số lỗi FN + FP + IDSW), trong khi IDF1 đo lường tỷ lệ nhận diện đúng danh tính trên toàn bộ chiều dài chuỗi tracking (Identification F1-score) — một lần đứt gãy hoặc tráo đổi ID sẽ làm sụp đổ liên kết ID toàn cục, khiến điểm IDF1 tụt dốc nghiêm trọng.
+
+## Bonus (nếu làm)
+
+### B2 — So cách đặt keyframe
+
+| Cách đặt | Số keyframe | Frame trôi nhất | Ghi chú |
+|---|---:|---:|---|
+| Đều mỗi 30 frame | 5 keyframe | Frame 45 | Box trôi mạnh khi P1 bị che và đổi vận tốc do giả định vận tốc không đổi bị vi phạm |
+| Theo chỗ đổi hướng / thích ứng | 29 keyframe | Không trôi rõ | Box bám khít toàn bộ hành trình, IoU luôn > 0.8 |
+
+So sánh: Khi đặt keyframe cố định mỗi 30 frame, thuật toán nội suy giả định người đi với vận tốc không đổi giữa hai mốc $k_0$ và $k_1$. Tuy nhiên, tại các frame 40–50 khi người đi bộ bắt đầu bị che và giảm tốc độ, chuyển động thực tế bị lệch khỏi đường thẳng tuyến tính, làm đáy box bị tụt lại sau gót chân. Phương pháp thích ứng (Adaptive Keyframing) theo vị trí gia tốc đổi chiều giải quyết triệt để hiện tượng này.
+
+### B3 — So với tracker có sẵn
+
+| Frame | Mã người | Tracker làm gì | Nhãn của bạn | Giải thích (đoán rồi sửa / ghép IoU / box score thấp / ngoại hình) |
+|---:|---|---|---|---|
+| 42 | P1 | Nhảy ID (ID Switch) sang P2 hoặc drop track | Giữ nguyên Track ID 1 | Box score thấp: Khi P1 bị P2 che khuất hoàn toàn, detector không phát hiện được box (confidence score < threshold), tracker tự động drop track hoặc ghép nhầm sang P2 |
+| 115 | P5 | Đứt track (Fragmentation) | Bật outside và nối lại đúng ID | Ngoại hình: P5 (bé gái áo trắng) bị người lớn đi cùng che khuất một phần góc nhìn, đặc trưng ngoại hình (visual embedding) bị nhiễu khiến tracker không dám liên kết ID |
 
 ## 7. Tài liệu tham khảo và công cụ AI đã dùng
 
